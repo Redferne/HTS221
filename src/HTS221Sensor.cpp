@@ -39,62 +39,10 @@
 /* Includes ------------------------------------------------------------------*/
 
 #include "Arduino.h"
-#include "Wire.h"
 #include "HTS221Sensor.h"
 
 
 /* Class Implementation ------------------------------------------------------*/
-
-/** Constructor
- * @param i2c object of an helper class which handles the I2C peripheral
- * @param address the address of the component's instance
- */
-HTS221Sensor::HTS221Sensor(TwoWire *i2c) : dev_i2c(i2c)
-{
-  address = HTS221_I2C_ADDRESS;
-
-  /* Power down the device */
-  if ( HTS221_DeActivate( (void *)this ) == HTS221_ERROR )
-  {
-    return;
-  }
-
-  /* Enable BDU */
-  if ( HTS221_Set_BduMode( (void *)this, HTS221_ENABLE ) == HTS221_ERROR )
-  {
-    return;
-  }
-
-  if(SetODR(1.0f) == HTS221_STATUS_ERROR)
-  {
-    return;
-  }
-};
-
-
-/** Constructor
- * @param i2c object of an helper class which handles the I2C peripheral
- * @param address the address of the component's instance
- */
-HTS221Sensor::HTS221Sensor(TwoWire *i2c, uint8_t address) : dev_i2c(i2c), address(address)
-{
-    /* Power down the device */
-  if ( HTS221_DeActivate( (void *)this ) == HTS221_ERROR )
-  {
-    return;
-  }
-
-  /* Enable BDU */
-  if ( HTS221_Set_BduMode( (void *)this, HTS221_ENABLE ) == HTS221_ERROR )
-  {
-    return;
-  }
-
-  if(SetODR(1.0f) == HTS221_STATUS_ERROR)
-  {
-    return;
-  }
-};
 
 /**
  * @brief  Enable HTS221
@@ -102,8 +50,20 @@ HTS221Sensor::HTS221Sensor(TwoWire *i2c, uint8_t address) : dev_i2c(i2c), addres
  */
 HTS221StatusTypeDef HTS221Sensor::Enable(void)
 {
+
   /* Power up the device */
   if ( HTS221_Activate( (void *)this ) == HTS221_ERROR )
+  {
+    return HTS221_STATUS_ERROR;
+  }
+
+  /* Enable BDU */
+  if ( HTS221_Set_BduMode( (void *)this, HTS221_ENABLE ) == HTS221_ERROR )
+  {
+    return HTS221_STATUS_ERROR;
+  }
+
+  if(SetODR(1.0f) == HTS221_STATUS_ERROR)
   {
     return HTS221_STATUS_ERROR;
   }
@@ -117,7 +77,7 @@ HTS221StatusTypeDef HTS221Sensor::Enable(void)
  */
 HTS221StatusTypeDef HTS221Sensor::Disable(void)
 {
-  /* Power up the device */
+  /* Power down the device */
   if ( HTS221_DeActivate( (void *)this ) == HTS221_ERROR )
   {
     return HTS221_STATUS_ERROR;
@@ -177,6 +137,15 @@ HTS221StatusTypeDef HTS221Sensor::Reset(void)
 HTS221StatusTypeDef HTS221Sensor::GetHumidity(float* pfData)
 {
   uint16_t uint16data = 0;
+  HTS221_BitStatus_et hum_done;
+  HTS221_BitStatus_et temp_done;
+
+  if ( HTS221_Get_DataStatus( (void *)this, &hum_done, &temp_done) == HTS221_ERROR )
+  {
+    return HTS221_STATUS_ERROR;
+  }
+  if (!hum_done)
+    return HTS221_STATUS_ERROR;
 
   /* Read data from HTS221. */
   if ( HTS221_Get_Humidity( (void *)this, &uint16data ) == HTS221_ERROR )
@@ -197,6 +166,15 @@ HTS221StatusTypeDef HTS221Sensor::GetHumidity(float* pfData)
 HTS221StatusTypeDef HTS221Sensor::GetTemperature(float* pfData)
 {
   int16_t int16data = 0;
+  HTS221_BitStatus_et hum_done;
+  HTS221_BitStatus_et temp_done;
+
+  if ( HTS221_Get_DataStatus( (void *)this, &hum_done, &temp_done) == HTS221_ERROR )
+  {
+    return HTS221_STATUS_ERROR;
+  }
+  if (!temp_done)
+    return HTS221_STATUS_ERROR;
 
   /* Read data from HTS221. */
   if ( HTS221_Get_Temperature( (void *)this, &int16data ) == HTS221_ERROR )
@@ -240,6 +218,21 @@ HTS221StatusTypeDef HTS221Sensor::GetODR(float* odr)
     default                 :
       *odr = -1.0f;
       return HTS221_STATUS_ERROR;
+  }
+
+  return HTS221_STATUS_OK;
+}
+
+/**
+ * @brief  Get Config
+ * @param  Struct to populate
+ * @retval HTS221_STATUS_OK in case of success, an error code otherwise
+ */
+HTS221StatusTypeDef HTS221Sensor::GetConfig(HTS221_Init_st* pxInit)
+{
+  if ( HTS221_Get_InitConfig( (void *)this, pxInit ) == HTS221_ERROR )
+  {
+    return HTS221_STATUS_ERROR;
   }
 
   return HTS221_STATUS_OK;

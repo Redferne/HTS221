@@ -65,18 +65,18 @@ typedef enum
 class HTS221Sensor
 {
   public:
-    HTS221Sensor                       (TwoWire *i2c);
-    HTS221Sensor                       (TwoWire *i2c, uint8_t address);
     HTS221StatusTypeDef Enable         (void);
     HTS221StatusTypeDef Disable        (void);
     HTS221StatusTypeDef ReadID         (uint8_t *ht_id);
     HTS221StatusTypeDef Reset          (void);
     HTS221StatusTypeDef GetHumidity    (float *pfData);
     HTS221StatusTypeDef GetTemperature (float *pfData);
-	HTS221StatusTypeDef GetODR         (float *odr);
-	HTS221StatusTypeDef SetODR         (float odr);
-	HTS221StatusTypeDef ReadReg        (uint8_t reg, uint8_t *data);
-	HTS221StatusTypeDef WriteReg       (uint8_t reg, uint8_t data);
+    HTS221StatusTypeDef GetConfig      (HTS221_Init_st* pxInit);
+	  HTS221StatusTypeDef GetODR         (float *odr);
+	  HTS221StatusTypeDef SetODR         (float odr);
+	  HTS221StatusTypeDef ReadReg        (uint8_t reg, uint8_t *data);
+	  HTS221StatusTypeDef WriteReg       (uint8_t reg, uint8_t data);
+
 	/**
      * @brief Utility function to read data.
      * @param  pBuffer: pointer to data to be read.
@@ -86,19 +86,19 @@ class HTS221Sensor
      */
     uint8_t IO_Read(uint8_t* pBuffer, uint8_t RegisterAddr, uint16_t NumByteToRead)
     {
-      dev_i2c->beginTransmission(((uint8_t)(((address) >> 1) & 0x7F)));
-      dev_i2c->write(RegisterAddr);
-      dev_i2c->endTransmission(false);
+      Wire.beginTransmission(((uint8_t)(((HTS221_I2C_ADDRESS) >> 1) & 0x7F)));
+      Wire.write(RegisterAddr);
+      Wire.endTransmission(false);
 
-      dev_i2c->requestFrom(((uint8_t)(((address) >> 1) & 0x7F)), (byte) NumByteToRead);
+      Wire.requestFrom(((uint8_t)(((HTS221_I2C_ADDRESS) >> 1) & 0x7F)), (byte) NumByteToRead);
 
       int i=0;
-      while (dev_i2c->available())
+      while (Wire.available())
       {
-        pBuffer[i] = dev_i2c->read();
+        pBuffer[i] = Wire.read();
         i++;
       }
-
+      Wire.endTransmission(true);
       return 0;
     }
     
@@ -111,23 +111,18 @@ class HTS221Sensor
      */
     uint8_t IO_Write(uint8_t* pBuffer, uint8_t RegisterAddr, uint16_t NumByteToWrite)
     {
-      dev_i2c->beginTransmission(((uint8_t)(((address) >> 1) & 0x7F)));
+      Wire.beginTransmission(((uint8_t)(((HTS221_I2C_ADDRESS) >> 1) & 0x7F)));
 
-      dev_i2c->write(RegisterAddr);
+      Wire.write(RegisterAddr);
       for (int i = 0 ; i < NumByteToWrite ; i++)
-        dev_i2c->write(pBuffer[i]);
+        Wire.write(pBuffer[i]);
 
-      dev_i2c->endTransmission(true);
+      Wire.endTransmission(true);
 
       return 0;
     }
 
   private:
-    /* Helper classes. */
-    TwoWire *dev_i2c;
-
-    /* Configuration */
-    uint8_t address;
 };
 
 #ifdef __cplusplus
